@@ -9,6 +9,12 @@ Playbook que permite generar varias vm de forma simultanea, customizando las var
 - Envía los parámetros de cloud-init para customización indicando ip, hostname, password, dns y gateway. 
 - Registra la vm hacia Red Hat Satellite.
 
+Infraestructura utilizada:
+ RHV 4.2
+ Red Hat Satellite 6.4
+ Template de rhel7 con cloud-init instalado. 
+
+
 La definición de las nuevas vms se declara como un diccionario dentro del archivo vars.yaml. 
 Ej:
 
@@ -42,6 +48,13 @@ servers:
 
 # deploy-vm-rhv-single
 Playbook que permite la creación de una vm única. Este playbook es el que integramos con Red Hat Cloudforms y Ansible Tower, el que permite realizar las mismas acciones del playbook anterior pero además permite inyectar la rsa-key de Ansible Tower a la nueva vm.
+Infraestructura utilizada:
+ RHV 4.2
+ Red Hat Satellite 6.4
+ Template de rhel7 con cloud-init instalado. 
+ Ansible Tower 3.4
+ Red Hat Cloudforms 4.6
+ 
 
 # host-preparation
 Playbook que demuestra algunas acciones que normalmente se realizan en un ambiente de operaciones a nuevas vms. Este playbook permite:
