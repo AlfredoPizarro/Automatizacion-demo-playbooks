@@ -1,0 +1,41 @@
+---     
+#Usuario rhev manager
+userrhv: admin@internal   
+#Password rhev manager
+passwordrvh: redhat01
+#Url de rhev manager
+urlrhv: https://rhevm.example.local/ovirt-engine/api
+#Ubicacion de bootstrap de Red Hat Satellite para registro de vms
+urlbootstrap: http://sat64.rhlabs.local/pub/bootstrap.py
+#Url de Red Hat Satellite
+urlsat: sat64.rhlabs.local
+#Organizacion de Red Hat Satellite para registro
+org: RHLABS
+#Location de Red Hat Satellite
+location: 'Default'
+#Activation key de Red Hat Satellite para completar el registro
+actkey: rhel7-act-key
+#Usuario de Red Hat Satellite
+satuser: admin
+#Password de Red Hat Satellite
+satpassword: redhat01
+#Host Group a asociar en Satellite
+satgrp: RHEL7-HG
+#Nombre del template en rhev del cual clonamos la nueva vm
+templaterhv: rhel7-base-latest
+#Nombre del cluster en rhev donde se encuentra el template
+cluster: RHLABS
+#Flag para registrar o no hacia Red Hat Satellite
+registervmsat: true
+#Datos de la vm a crear
+srvname: client1.rhlabs.local
+shortname: client1
+memoria: 2GiB
+cpu: 2
+ip_address: 172.20.1.103
+ip_net: 255.255.255.0
+ip_gateway: 172.20.1.1
+ip_nic: eth0
+temp_user: root
+temp_pass: redhat01
+dns: 172.20.1.83

@@ -1,0 +1,61 @@
+---
+- hosts: localhost
+  any_errors_fatal: true
+  gather_facts: no
+  connection: local
+  tasks:
+  - name: Obtiene token de autenticacion RHVM
+    ovirt_auth:
+      username: "{{ userrhv }}"
+      password: "{{ passwordrvh }}"
+      insecure: true
+      url: "{{ urlrhv }}"
+  - name: Crea servidores desde template y registra a Satellite
+    ovirt_vms:
+     auth: "{{ ovirt_auth }}"
+     name: "{{ srvname }}"
+     template: "{{ templaterhv }}"
+     cluster: "{{ cluster }}"
+     memory: "{{ memoria }}"
+     cpu_cores: "{{ cpu }}"
+     cloud_init_persist: false
+     cloud_init:
+        nic_boot_protocol: static
+        nic_ip_address: "{{ ip_address }}"
+        nic_netmask: "{{ ip_net }}"
+        nic_gateway: "{{ ip_gateway }}"
+        nic_name: "{{ ip_nic }}"
+        nic_on_boot: true
+        dns_servers: "{{ dns }}"
+        host_name: "{{ srvname }}"
+        user_name: "{{ temp_user }}"
+        root_password: "{{ temp_password }}"
+        authorized_ssh_keys: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDHvkF2VlGC1KO2MnmOf3BPEl48vgpCIr/lEyhZDfIp38uPS1CC/XOh+Yx1qd/sjnOjC4jvLWfmkXof3Ut+4GB/0TYyUCvX93k6vBkJ3ud9QFMoDHGNqbpG6B9AJSx3e8oV4q5phs+OLATp/FCQsJhkMB/NP3314bZOKRHJy1D8Uhmp6CsQXT8gmZ4o2MnOwK932hymHMg1pG9rfwPGJ8ol4mg2oDMBlVPVzK/KW67g/lyYix77lqe1dfN8DTPn0zIypOCctWqf8J6x1NI8XU83dyD48BMgNO3KvXeU9jvxl23+GVi5FqiWIw5K6S3KuHzo4heys5XEcb9074aLDSMv root@tower.rhlabs.local"
+        custom_script: |
+              runcmd: 
+                 - touch /etc/cloud/cloud-init.disabled {% if registervmsat is sameas true  %}  && sed -i -e '/proxy_hostname =/ s/=.*/= /' /etc/rhsm/rhsm.conf && sed -i -e '/proxy_port =/ s/=.*/= /' /etc/rhsm/rhsm.conf && curl "{{ urlbootstrap}}" -o /root/bootstrap.py --insecure  && chmod 755 /root/bootstrap.py && /root/bootstrap.py  -l "{{satuser}}" -p "{{satpassword}}" -s "{{urlsat}}"  -o "{{ org }}"  -L "{{ location}}" -g "{{ satgrp }}" -a "{{ actkey }}" --rex --force
+                   {% endif %}
+     state: running
+  - name: Agrega registro dns asociados
+    nsupdate:
+      key_name: bastion-update
+      key_secret: 4c0Y1wIO1oNWrl6LWR6jwY5zzuq7NJpj0aQV3DPzp/FnDoyapPehtR0C12ZDyH6TsfQxVlnq2N7y4XuCMqK2WQ==
+      server: 172.20.1.83
+      zone: rhlabs.local
+      record: "{{ srvname.split('.')[0] | lower }}"
+      value: "{{ ip_address }}"
+  - name: Agrega disco adicional DATA
+    ovirt_disk:
+      auth: "{{ ovirt_auth }}"
+      name: "{{ srvname }}"
+      name: disk_data
+      vm_name: "{{ srvname }}"
+      size: 10GiB
+      format: cow
+      interface: virtio_scsi
+      storage_domain: SD-06
+    when: add_disk == 'true'
+  - name: Revoca token RHVM
+    ovirt_auth:
+      state: absent
+      ovirt_auth: "{{ ovirt_auth }}"

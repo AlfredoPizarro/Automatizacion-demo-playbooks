@@ -1,0 +1,112 @@
+---
+- hosts: servers
+  remote_user: root
+  gather_facts: yes
+  vars_files:
+     - ./vars.yaml
+  tasks:
+   - name: Valida si RAM es suficiente
+     assert:
+       that:
+        -   "ansible_memtotal_mb > {{ min_memory }}"
+       msg: "Memoria Ram insuficiente"
+   - name: Crea usuarios pre-requisitos
+     user: 
+       name: "{{ item }}"
+       state: present 
+       password: $6$R.UzpD21WuBMLCwQ$CYQ/Fax65NjmjVcX6w4P28Fq9CaVk96vUymnOVhRcg/QhT6C.9Qg.vq8a0AkPWkIl6DPXcd9wZYKnzvCFxjL81
+     with_items: "{{ users }}"
+   - name:  Aplica reglas de firewall
+     firewalld:
+       service: "{{ item }}"
+       permanent: yes
+       state: enabled
+     with_items: "{{ rules }}"
+   - name: Reinicia servicio firewalld
+     systemd:  
+       name: firewalld 
+       state: reloaded
+   - name: Ajusta servicios de red 
+     sysctl: 
+       name: "{{ item.value.nombre }}"
+       value: "{{ item.value.valor }}"
+       state: present
+     with_dict: "{{ kernel }}"
+   - name: Crea partición primaria
+     parted:
+       device: /dev/{{ disco }}
+       number: 1
+       state: present
+   - name: Crea VG para Datos
+     lvg:
+       vg: vg_app
+       pvs: /dev/{{ disco }}1
+   - name: Crea Lvs
+     lvol:
+       vg: vg_app
+       lv: "{{ item.vol }}"
+       size: "{{ item.size }}"
+     with_items:
+       -  { vol: 'lv_data1', size: "{{ lv_data1_size }}" }
+       -  { vol: 'lv_data2', size: "{{ lv_data2_size }}" }
+       -  { vol: 'lv_data3', size: "{{ lv_data3_size }}" }
+   - name: Format de disco data1
+     filesystem:
+      fstype: xfs
+      dev: /dev/vg_app/lv_data1
+   - name: Format de disco data2
+     filesystem:
+      fstype: xfs
+      dev: /dev/vg_app/lv_data2
+   - name: Format de disco data3
+     filesystem:
+      fstype: xfs
+      dev: /dev/vg_app/lv_data3
+   - name: Crea punto de montaje /data/data1
+     file:
+       path: /data/data1
+       state: directory
+   - name: Crea punto de montaje /data/data2
+     file:
+       path: /data/data2
+       state: directory
+   - name: Crea punto de montaje /data/data3
+     file:
+       path: /data/data3
+       state: directory
+   - name: Monta filesystem
+     mount:
+       path: /data/data1
+       src: /dev/vg_app/lv_data1
+       fstype: xfs
+       state: mounted
+   - name: Monta filesystem
+     mount:
+       path: /data/data2
+       src: /dev/vg_app/lv_data2
+       fstype: xfs
+       state: mounted
+   - name: Monta filesystem
+     mount:
+       path: /data/data3
+       src: /dev/vg_app/lv_data3
+       fstype: xfs
+       state: mounted
+   - name: Instala servicio apache
+     yum:
+       name: httpd 
+       state: present
+   - name: Inicia servicio
+     service:
+      name: httpd
+      state: started
+   - name: Copia index.html
+     unarchive:
+      src: ./files/page.tgz
+      dest: /var/www/html
+   - name: Establece motd
+     copy:
+      src: ./files/motd
+      dest: /etc/motd
+      owner: root
+      group: root

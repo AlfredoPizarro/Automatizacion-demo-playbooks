@@ -1,0 +1,32 @@
+---
+#Identifica a los usuarios a crear dentro
+users:
+  - appuser
+  - operator
+  - thanos
+#Reglas de firewall que se deben aplicar
+rules:
+  - http
+  - https
+  - nfs
+  - ldap
+#Parametros de kernel especificados en un diccionario
+kernel:
+   param1:
+     nombre: net.ipv4.conf.all.send_redirects
+     valor: 0
+   param2:
+     nombre: net.ipv4.conf.all.log_martians
+     valor: 1
+   param3:
+     nombre: net.ipv4.conf.all.rp_filter
+     valor: 1
+#Discos adicional para aplicaciones (sin /dev)
+disco: sdb
+#Memoria minima en MB para aplicar el playbook, si la memoria es menor, no ejecuta  el resto de los pasos
+min_memory: 1024
+#Tamaño de cada una de las 3 particiones de aplicación en Gigas
+lv_data1_size: 1g
+lv_data2_size: 1g
+lv_data3_size: 1g
+

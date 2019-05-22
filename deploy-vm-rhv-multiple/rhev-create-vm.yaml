@@ -1,0 +1,53 @@
+---
+- hosts: localhost
+  any_errors_fatal: true
+  gather_facts: no
+  connection: local
+  vars_files:
+    - ./vars.yaml
+  tasks:
+  - name: Obtiene token de autenticacion RHVM
+    ovirt_auth:
+      username: "{{ userrhv }}"
+      password: "{{ passwordrvh }}"
+      insecure: true
+      url: "{{ urlrhv }}"
+  - name: Crea servidores desde template y registra a Satellite
+    ovirt_vms:
+     auth: "{{ ovirt_auth }}"
+     name: "{{ item.value.srvname }}"
+     template: "{{ templaterhv }}"
+     cluster: "{{ cluster }}"
+     memory: "{{ item.value.memoria }}"
+     cpu_cores: "{{ item.value.cpu }}"
+     cloud_init_persist: false
+     cloud_init:
+        nic_boot_protocol: static
+        nic_ip_address: "{{ item.value.ip_address }}"
+        nic_netmask: "{{ item.value.ip_net }}"
+        nic_gateway: "{{ item.value.ip_gateway }}"
+        nic_name: "{{ item.value.ip_nic }}"
+        nic_on_boot: true
+        dns_servers: "{{ item.value.dns }}"
+        host_name: "{{ item.value.srvname }}"
+        user_name: "{{ item.value.temp_user }}"
+        root_password: "{{ item.value.temp_pass }}"
+        custom_script: |
+              runcmd: 
+                 - touch /etc/cloud/cloud-init.disabled {% if registervmsat is sameas true  %}  && sed -i -e '/proxy_hostname =/ s/=.*/= /' /etc/rhsm/rhsm.conf && sed -i -e '/proxy_port =/ s/=.*/= /' /etc/rhsm/rhsm.conf && curl "{{ urlbootstrap}}" -o /root/bootstrap.py --insecure  && chmod 755 /root/bootstrap.py && /root/bootstrap.py  -l "{{satuser}}" -p "{{satpassword}}" -s "{{urlsat}}"  -o "{{ org }}"  -L "{{ location}}" -g "{{ satgrp }}" -a "{{ actkey }}" --rex --force  && yum install insights-client; insights-client --register \
+                   {% endif %}
+     state: running
+    with_dict: "{{ servers }}"
+  - name: Agrega registro dns asociados
+    nsupdate:
+      key_name: bastion-update
+      key_secret: 4c0Y1wIO1oNWrl6LWR6jwY5zzuq7NJpj0aQV3DPzp/FnDoyapPehtR0C12ZDyH6TsfQxVlnq2N7y4XuCMqK2WQ==
+      server: 172.20.1.83
+      zone: rhlabs.local
+      record: "{{ item.value.shortname }}"
+      value: "{{ item.value.ip_address }}"
+    with_dict: "{{ servers }}"
+  - name: Revoca token RHVM
+    ovirt_auth:
+      state: absent
+      ovirt_auth: "{{ ovirt_auth }}"
